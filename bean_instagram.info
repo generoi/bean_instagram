@@ -2,4 +2,3 @@ name = Instagram Bean
 description = TODO: Description of module
 dependencies[] = bean
 core = 7.x
-files[] = tests/bean_instagram.test
