@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file bean_instagram.module
+ * TODO: Enter file description here.
+ */
+
+
+/**
+ * Implements hook_library().
+ */
+function bean_instagram_library() {
+
+  $module_path = drupal_get_path('module', 'bean_instagram');
+  $library_path = libraries_get_path('instafeed');
+  $items['instafeed'] = array(
+    'title' => t('instafeed'),
+    'version' => '1.2.0',
+    'js' => array(
+      $library_path . '/instafeed.min.js' => array('group' => JS_LIBRARY)
+    )
+  );
+  $items['bean_instagram'] = array(
+    'title' => t('Bean Instagram'),
+    'version' => '0.1.1',
+    'js' => array(
+      $module_path . '/bean_instagram.js' => array('group' => JS_MODULE)
+    ),
+    'dependencies' => array(
+      array('bean_instagram', 'instafeed')
+    )
+  );
+  return $items;
+}
+
+
+/**
+ * Implements hook_bean_types_api_info().
+ */
+function bean_instagram_bean_types_api_info() {
+  return array('api' => 5);
+}
+
+/**
+ * Implements hook_bean_types().
+ */
+function bean_instagram_bean_types() {
+  $plugins = array();
+  $plugin_path = drupal_get_path('module', 'bean_instagram') . '/plugins/bean';
+  $plugins['instagram'] = array(
+    'label' => t('Instagram Bean'),
+    'description' => t('Instagram content'),
+    'handler' => array(
+      'class' => 'InstagramBean',
+      'parent' => 'bean',
+      'path' => $plugin_path
+    ),
+    'path' => $plugin_path
+  );
+  return $plugins;
+}
