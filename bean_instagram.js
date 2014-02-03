@@ -1,3 +1,4 @@
+(function($, Instafeed) {
 Drupal.behaviors.bean_instagram = {
   attach: function (context, settings) {
     var instances = Drupal.settings.bean_instagram && Drupal.settings.bean_instagram.instances;
@@ -8,3 +9,4 @@ Drupal.behaviors.bean_instagram = {
    }
  }
 };
+}(jQuery, window.Instafeed));
