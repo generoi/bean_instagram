@@ -23,7 +23,7 @@ function bean_instagram_library() {
     'title' => t('Bean Instagram'),
     'version' => '0.1.1',
     'js' => array(
-      $module_path . '/bean_instagram.js' => array('group' => JS_MODULE)
+      $module_path . '/bean_instagram.js' => array('group' => JS_DEFAULT),
     ),
     'dependencies' => array(
       array('bean_instagram', 'instafeed'),
