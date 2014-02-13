@@ -5,20 +5,19 @@
  * TODO: Enter file description here.
  */
 
-
 /**
  * Implements hook_library().
  */
 function bean_instagram_library() {
-
   $module_path = drupal_get_path('module', 'bean_instagram');
   $library_path = libraries_get_path('instafeed');
+
   $items['instafeed'] = array(
     'title' => t('instafeed'),
     'version' => '1.2.0',
     'js' => array(
-      $library_path . '/instafeed.min.js' => array('group' => JS_LIBRARY)
-    )
+      $library_path . '/instafeed.min.js' => array('group' => JS_LIBRARY),
+    ),
   );
   $items['bean_instagram'] = array(
     'title' => t('Bean Instagram'),
@@ -27,8 +26,8 @@ function bean_instagram_library() {
       $module_path . '/bean_instagram.js' => array('group' => JS_MODULE)
     ),
     'dependencies' => array(
-      array('bean_instagram', 'instafeed')
-    )
+      array('bean_instagram', 'instafeed'),
+    ),
   );
   return $items;
 }
@@ -53,9 +52,9 @@ function bean_instagram_bean_types() {
     'handler' => array(
       'class' => 'InstagramBean',
       'parent' => 'bean',
-      'path' => $plugin_path
+      'path' => $plugin_path,
     ),
-    'path' => $plugin_path
+    'path' => $plugin_path,
   );
   return $plugins;
 }
