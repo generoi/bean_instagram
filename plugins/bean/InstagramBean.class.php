@@ -7,17 +7,18 @@ class InstagramBean extends BeanPlugin {
   public function values() {
     $values = array(
       'settings' => array(
-        'get' => FALSE,
-        'accessToken' => FALSE,
-        'clientId' => FALSE,
-        'locationId' => FALSE,
-        'tagName' => FALSE,
-        'sortBy' => FALSE,
+        'get' => 'popular',
+        'accessToken' => NULL,
+        'clientId' => NULL,
+        'locationId' => NULL,
+        'tagName' => NULL,
+        'sortBy' => 'most-recent',
         'links' => FALSE,
-        'limit' => FALSE,
-        'resolution' => FALSE
-        )
-      );
+        'limit' => '10',
+        'resolution' => 'thumbnail',
+        'template' => '',
+      )
+    );
     return array_merge(parent::values(), $values);
   }
 
@@ -130,8 +131,14 @@ class InstagramBean extends BeanPlugin {
       '#default_value' => $bean->settings['resolution'],
     );
 
-    return $form;
+    $form['settings']['template'] = array(
+      '#type' => 'textarea',
+      '#title' => t('Template'),
+      '#description' => t('Override the default template. See the !link for available tags.', array('!link' => l(t('Instafeed documentation'), 'http://instafeedjs.com/#templating', array('absolute' => TRUE)))),
+      '#default_value' => $bean->settings['template'],
+    );
 
+    return $form;
   }
 
 
@@ -150,7 +157,9 @@ class InstagramBean extends BeanPlugin {
     $settings = $bean->settings + array(
       'target' => $id
     );
-    $settings = array_filter($settings);
+    // Filter out null/empty settings.
+    $settings = array_filter($settings, 'strlen');
+
     $build['#attached']['js'][] = array(
       'type' => 'setting',
       'data' => array('bean_instagram' => array('instances' => array($settings)))
