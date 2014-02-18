@@ -165,8 +165,16 @@ class InstagramBean extends BeanPlugin {
       'data' => array('bean_instagram' => array('instances' => array($settings)))
     );
 
-    $build[] = array(
-      '#markup' => '<div class="bean-instagram-wrapper"><div id="' . $id . '" class="bean-instagram"></div></div>'
+    // Copy over all custom fields such as title to the output. We dont attach
+    // our custom element to the existing array as DS would prevent it from
+    // rendering.
+    $key = key($content['bean']);
+    foreach (element_children($content['bean'][$key]) as $field) {
+      $build[] = $content['bean'][$key][$field];
+    }
+    $build['content'] = array(
+      '#markup' => '<div class="bean-instagram-wrapper"><div id="' . $id . '" class="bean-instagram"></div></div>',
+      '#weight' => 10,
     );
     return $build;
   }
