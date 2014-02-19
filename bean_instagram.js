@@ -22,7 +22,8 @@
 
   function noop() {}
   // Provide overrideable hooks.
-  $.each(['before', 'after', 'succes', 'error'], function(fn) {
-    if (!Drupal.bean_instagram[fn]) Drupal.bean_instagram[fn] = noop;
-  });
+  Drupal.bean_instagram.before = noop;
+  Drupal.bean_instagram.after = noop;
+  Drupal.bean_instagram.success = noop;
+  Drupal.bean_instagram.error = noop;
 }(jQuery, window.Instafeed));
