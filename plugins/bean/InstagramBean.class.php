@@ -52,6 +52,11 @@ class InstagramBean extends BeanPlugin {
       '#title' => t('Access Token'),
       '#description' => t('A valid oAuth token. Required if you wish to search by user id.'),
       '#default_value' => $bean->settings['accessToken'],
+      '#states' => array(
+        'visible' => array(
+          ':input[name$="settings[get]"]' => array('value' => 'user'),
+        ),
+      ),
     );
 
     $form['settings']['clientId'] = array(
