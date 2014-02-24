@@ -8,8 +8,9 @@ class InstagramBean extends BeanPlugin {
     $values = array(
       'settings' => array(
         'get' => 'popular',
-        'accessToken' => NULL,
         'clientId' => NULL,
+        'userId' => NULL,
+        'accessToken' => NULL,
         'locationId' => NULL,
         'tagName' => NULL,
         'sortBy' => 'most-recent',
@@ -47,6 +48,26 @@ class InstagramBean extends BeanPlugin {
       '#description' => t('Customize what Instafeed fetches.'),
     );
 
+    $form['settings']['clientId'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Client ID'),
+      '#description' => t('Your API client id from Instagram. Required.'),
+      '#default_value' => $bean->settings['clientId'],
+      '#required' => TRUE,
+    );
+
+    $form['settings']['userId'] = array(
+      '#type' => 'textfield',
+      '#title' => t('User ID'),
+      '#description' => t('Unique id of a user to get. Required if you wish to search by user id.'),
+      '#default_value' => $bean->settings['userId'],
+      '#states' => array(
+        'visible' => array(
+          ':input[name$="settings[get]"]' => array('value' => 'user'),
+        ),
+      ),
+    );
+
     $form['settings']['accessToken'] = array(
       '#type' => 'textfield',
       '#title' => t('Access Token'),
@@ -57,14 +78,6 @@ class InstagramBean extends BeanPlugin {
           ':input[name$="settings[get]"]' => array('value' => 'user'),
         ),
       ),
-    );
-
-    $form['settings']['clientId'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Client ID'),
-      '#description' => t('Your API client id from Instagram. Required.'),
-      '#default_value' => $bean->settings['clientId'],
-      '#required' => TRUE,
     );
 
     $form['settings']['locationId'] = array(

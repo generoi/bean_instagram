@@ -7,6 +7,7 @@
           var options = instances[i];
           options.links = !!options.links;
           options.limit = ~~options.limit;
+          options.userId = ~~options.userId;
 
           options.before = Drupal.bean_instagram.before;
           options.after = Drupal.bean_instagram.after;
