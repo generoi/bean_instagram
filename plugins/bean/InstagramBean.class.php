@@ -10,6 +10,7 @@ class InstagramBean extends BeanPlugin {
         'get' => 'popular',
         'clientId' => NULL,
         'userId' => NULL,
+        'userName' => NULL,
         'accessToken' => NULL,
         'locationId' => NULL,
         'tagName' => NULL,
@@ -18,6 +19,7 @@ class InstagramBean extends BeanPlugin {
         'limit' => '10',
         'resolution' => 'thumbnail',
         'template' => '',
+        'showMoreLink' => FALSE,
       )
     );
     return array_merge(parent::values(), $values);
@@ -67,6 +69,28 @@ class InstagramBean extends BeanPlugin {
         ),
       ),
     );
+    $form['settings']['userName'] = array(
+      '#type' => 'textfield',
+      '#title' => t('User Name'),
+      '#description' => t('Name of the instagram account.'),
+      '#default_value' => $bean->settings['userName'],
+      '#states' => array(
+        'visible' => array(
+          ':input[name$="settings[get]"]' => array('value' => 'user'),
+        ),
+      ),
+    );
+    $form['settings']['showMoreLink'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Show more link'),
+      '#description' => t('Display a More on Instgram link below the list.'),
+      '#default_value' => $bean->settings['showMoreLink'],
+      '#states' => array(
+        'visible' => array(
+          ':input[name$="settings[userName]"]' => array('filled' => TRUE),
+        ),
+      ),
+    );
 
     $form['settings']['accessToken'] = array(
       '#type' => 'textfield',
@@ -75,7 +99,7 @@ class InstagramBean extends BeanPlugin {
       '#default_value' => $bean->settings['accessToken'],
       '#states' => array(
         'visible' => array(
-          ':input[name$="settings[get]"]' => array('value' => 'user'),
+          ':input[name$="settings[get]"]' => array('filled' => 'user'),
         ),
       ),
     );
@@ -190,8 +214,12 @@ class InstagramBean extends BeanPlugin {
     foreach (element_children($content['bean'][$key]) as $field) {
       $build[] = $content['bean'][$key][$field];
     }
+    $show_more = '';
+    if ($settings['showMoreLink']) {
+      $show_more = '<p>' . l(t('More on instagram'), 'https://instagram.com/' . $settings['userName'], array('external' => TRUE, 'attributes' => array('class' => array('show-more')))) . '</p>';
+    }
     $build['content'] = array(
-      '#markup' => '<div class="bean-instagram-wrapper"><div id="' . $id . '" class="bean-instagram"></div></div>',
+      '#markup' => '<div class="bean-instagram-wrapper"><div id="' . $id . '" class="bean-instagram"></div>' . $show_more . '</div>',
       '#weight' => 10,
     );
     return $build;
