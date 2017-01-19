@@ -30,14 +30,39 @@ class InstagramBean extends BeanPlugin {
    * Builds extra settings for the block edit form.
    */
   public function form($bean, $form, &$form_state) {
-    global $base_url;
-    global $language;
-
     $form = array();
     $form['settings'] = array(
       '#type' => 'fieldset',
       '#tree' => TRUE,
       '#title' => t('Settings'),
+    );
+
+    $form['settings']['auth'] = array(
+      '#type' => 'item',
+      '#markup' => l(t('Change authentication settings.'), 'admin/config/services/instagram'),
+    );
+
+    $form['settings']['clientId'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Client ID'),
+      '#description' => t('Your API client id from Instagram. Required.'),
+      '#default_value' => variable_get('bean_instagram_client_id', $bean->settings['clientId']),
+      '#attributes' => array('disabled' => 'disabled'),
+    );
+
+    $form['settings']['clientSecret'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Client Secret'),
+      '#description' => t('Your API client secret from Instagram. Required.'),
+      '#default_value' => variable_get('bean_instagram_client_secret', $bean->settings['clientSecret']),
+      '#attributes' => array('disabled' => 'disabled'),
+    );
+
+    $form['settings']['accessToken'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Access Token'),
+      '#default_value' => variable_get('bean_instagram_access_token', $bean->settings['accessToken']),
+      '#attributes' => array('disabled' => 'disabled'),
     );
 
     $form['settings']['get'] = array(
@@ -52,22 +77,6 @@ class InstagramBean extends BeanPlugin {
       '#required' => TRUE,
       '#default_value' => $bean->settings['get'],
       '#description' => t('Customize what Instafeed fetches.'),
-    );
-
-    $form['settings']['clientId'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Client ID'),
-      '#description' => t('Your API client id from Instagram. Required.'),
-      '#default_value' => $bean->settings['clientId'],
-      '#required' => TRUE,
-    );
-
-    $form['settings']['clientSecret'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Client Secret'),
-      '#description' => t('Your API client secret from Instagram. Required.'),
-      '#default_value' => $bean->settings['clientSecret'],
-      '#required' => TRUE,
     );
 
     $form['settings']['userId'] = array(
@@ -103,52 +112,6 @@ class InstagramBean extends BeanPlugin {
         ),
       ),
     );
-
-    $form['settings']['access_token'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Access Token'),
-      '#description' => t('A valid oAuth token. Required if you wish to search by user id.'),
-    );
-
-    $form['settings']['access_token']['accessToken'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Access Token'),
-      '#title_display' => 'invisible',
-      '#default_value' => $bean->settings['accessToken'],
-      '#parents' => array('settings'),
-      '#disabled' => TRUE,
-    );
-
-    $form['settings']['access_token']['getAccessToken'] = array(
-      '#type' => 'submit',
-      '#value' => t('Get Access Token'),
-      '#name' => 'get_access_token',
-      '#parents' => array('settings'),
-      '#states' => array(
-        'disabled' => array(
-          ':input[name$="settings[clientId]"]' => array('filled' => FALSE),
-          ':input[name$="settings[clientSecret]"]' => array('filled' => FALSE),
-        ),
-      ),
-    );
-
-    $query_parameters = drupal_get_query_parameters();
-
-    if (isset($query_parameters['code'])) {
-      $options = array(
-        'client_id' => $bean->settings['clientId'],
-        'client_secret' => $bean->settings['clientSecret'],
-        'grant_type' => 'authorization_code',
-        'redirect_uri' => "$base_url/{$language->language}/block/{$bean->delta}/edit",
-        'code' => $query_parameters['code'],
-      );
-
-      $response = $this->accessToken($options);
-
-      if (isset($response['access_token'])) {
-        $form['settings']['access_token']['accessToken']['#default_value'] = $response['access_token'];
-      }
-    }
 
     $form['settings']['locationId'] = array(
       '#type' => 'textfield',
@@ -230,28 +193,6 @@ class InstagramBean extends BeanPlugin {
   }
 
   /**
-   *
-   */
-  public function validate($values, &$form_state) {
-    $trigger = $form_state['triggering_element'];
-    if ($trigger['#name'] == 'get_access_token') {
-      global $base_url;
-      global $language;
-      $bean = $values['bean'];
-
-      $redirect_uri = "$base_url/{$language->language}/block/{$bean->delta}/edit";
-      $client_id = $values['settings']['clientId'];
-
-      if (isset($_GET['destination'])) {
-        $destination = drupal_get_destination();
-        unset($_GET['destination']);
-      }
-
-      $form_state['redirect'] = "https://api.instagram.com/oauth/authorize/?client_id=$client_id&redirect_uri=$redirect_uri&response_type=code";
-    }
-  }
-
-  /**
    * Displays the bean.
    */
   public function view($bean, $content, $view_mode = 'default', $langcode = NULL) {
@@ -290,23 +231,6 @@ class InstagramBean extends BeanPlugin {
       '#weight' => 10,
     );
     return $build;
-  }
-
-  /**
-   *
-   */
-  private function accessToken($options) {
-    $ch = curl_init();
-
-    curl_setopt($ch, CURLOPT_URL, 'https://api.instagram.com/oauth/access_token');
-    curl_setopt($ch, CURLOPT_POSTFIELDS, drupal_http_build_query($options));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
-    $result = curl_exec($ch);
-
-    curl_close($ch);
-
-    return drupal_json_decode($result);
   }
 
 }
