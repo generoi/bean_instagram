@@ -6,6 +6,11 @@ class InstagramBean extends BeanPlugin {
    */
   public function values() {
     $values = array(
+      'authentication' => array(
+        'client_id' => NULL,
+        'client_secret' => NULL,
+        'access_token' => NULL,
+      ),
       'settings' => array(
         'get' => 'popular',
         'clientId' => NULL,
@@ -30,128 +35,87 @@ class InstagramBean extends BeanPlugin {
    * Builds extra settings for the block edit form.
    */
   public function form($bean, $form, &$form_state) {
+    $query_parameters = drupal_get_query_parameters();
+
     $form = array();
+
     $form['settings'] = array(
       '#type' => 'fieldset',
-      '#tree' => TRUE,
       '#title' => t('Settings'),
-    );
-
-    $form['settings']['auth'] = array(
-      '#type' => 'item',
-      '#markup' => l(t('Change authentication settings.'), 'admin/config/services/instagram'),
-    );
-
-    $form['settings']['clientId'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Client ID'),
-      '#description' => t('Your API client id from Instagram. Required.'),
-      '#default_value' => variable_get('bean_instagram_client_id', $bean->settings['clientId']),
-      '#attributes' => array('disabled' => 'disabled'),
-    );
-
-    $form['settings']['clientSecret'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Client Secret'),
-      '#description' => t('Your API client secret from Instagram. Required.'),
-      '#default_value' => variable_get('bean_instagram_client_secret', $bean->settings['clientSecret']),
-      '#attributes' => array('disabled' => 'disabled'),
+      '#tree' => TRUE,
+      '#collapsed' => FALSE,
+      '#collapsible' => TRUE,
+      '#weight' => -4,
+      '#states' => array(
+        'invisible' => array(
+          ':input[name$="authentication[access_token]"]' => array('empty' => TRUE),
+        ),
+      ),
     );
 
     $form['settings']['accessToken'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Access Token'),
-      '#default_value' => variable_get('bean_instagram_access_token', $bean->settings['accessToken']),
-      '#attributes' => array('disabled' => 'disabled'),
-    );
-
-    $form['settings']['get'] = array(
-      '#type' => 'select',
-      '#title' => t('Type'),
-      '#options' => array(
-        'popular' => t('Popular'),
-        'tagged' => t('Tagged'),
-        'location' => t('Location'),
-        'user' => t('User'),
-      ),
-      '#required' => TRUE,
-      '#default_value' => $bean->settings['get'],
-      '#description' => t('Customize what Instafeed fetches.'),
+      '#type' => 'hidden',
+      '#default_value' => $bean->settings['accessToken'],
     );
 
     $form['settings']['userId'] = array(
       '#type' => 'textfield',
       '#title' => t('User ID'),
-      '#description' => t('Unique id of a user to get. Required if you wish to search by user id.'),
+      '#description' => t('Unique id of a user to get.'),
       '#default_value' => $bean->settings['userId'],
-      '#states' => array(
-        'visible' => array(
-          ':input[name$="settings[get]"]' => array('value' => 'user'),
-        ),
-      ),
     );
-    $form['settings']['userName'] = array(
+
+    $form['authentication'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Authentication'),
+      '#description' => t('You need to log in to Instagram with the user you want to query and create a client at !link, and add this URL !url to <strong>Valid redirect URIs</strong>.', array(
+        '!link' => l('https://www.instagram.com/developer/clients/manage/', 'https://www.instagram.com/developer/clients/manage/'),
+        '!url' => '<span contenteditable="true">' . url('bean_instagram/get_access_token', array('absolute' => TRUE)) . '</span>',
+      )),
+      '#tree' => TRUE,
+      '#weight' => -5,
+    );
+
+    $form['authentication']['client_id'] = array(
       '#type' => 'textfield',
-      '#title' => t('User Name'),
-      '#description' => t('Name of the instagram account.'),
-      '#default_value' => $bean->settings['userName'],
-      '#states' => array(
-        'visible' => array(
-          ':input[name$="settings[get]"]' => array('value' => 'user'),
-        ),
+      '#title' => t('Client ID'),
+      '#description' => t('Your API Client ID from Instagram.'),
+      '#default_value' => $bean->authentication['client_id'],
+      '#required' => TRUE,
+    );
+
+    $form['authentication']['client_secret'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Client Secret'),
+      '#description' => t('Your API Client Secret from Instagram.'),
+      '#default_value' => $bean->authentication['client_secret'],
+      '#required' => TRUE,
+    );
+
+    $form['authentication']['access_token'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Access Token'),
+      '#default_value' => $bean->settings['accessToken'],
+      '#required' => TRUE,
+    );
+
+    $form['authentication']['get_access_token'] = array(
+      '#type' => 'submit',
+      '#value' => t('Get Access Token'),
+      '#name' => 'get_access_token',
+      '#submit' => array('bean_instagram_get_access_token_submit'),
+      '#limit_validation_errors' => array(
+        array('authentication', 'client_id'),
+        array('authentication', 'client_secret'),
+        array('form_build_id'),
       ),
     );
+
     $form['settings']['showMoreLink'] = array(
       '#type' => 'checkbox',
       '#title' => t('Show more link'),
       '#description' => t('Display a More on Instgram link below the list.'),
       '#default_value' => $bean->settings['showMoreLink'],
-      '#states' => array(
-        'visible' => array(
-          ':input[name$="settings[userName]"]' => array('filled' => TRUE),
-        ),
-      ),
-    );
-
-    $form['settings']['locationId'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Location ID'),
-      '#description' => t('Unique id of a location to get.'),
-      '#default_value' => $bean->settings['locationId'],
-      '#states' => array(
-        'visible' => array(
-          ':input[name$="settings[get]"]' => array('value' => 'location'),
-        ),
-      ),
-    );
-
-    $form['settings']['tagName'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Tag Name'),
-      '#description' => t('Name of the tag to get.'),
-      '#default_value' => $bean->settings['tagName'],
-      '#states' => array(
-        'visible' => array(
-          ':input[name$="settings[get]"]' => array('value' => 'tagged'),
-        ),
-      ),
-    );
-
-    $form['settings']['sortBy'] = array(
-      '#type' => 'select',
-      '#title' => t('Sort by'),
-      '#description' => t('Sort the images in a set order.'),
-      '#options' => array(
-        'most-recent' => t('Most Recent'),
-        'least-recent' => t('Least Recent'),
-        'most-liked' => t('Most Liked'),
-        'least-liked' => t('Least Liked'),
-        'most-commented' => t('Most Commented'),
-        'least-commented' => t('Least Commented'),
-        'random' => t('Random'),
-      ),
-      '#required' => TRUE,
-      '#default_value' => $bean->settings['sortBy'],
     );
 
     $form['settings']['links'] = array(
@@ -165,8 +129,7 @@ class InstagramBean extends BeanPlugin {
       '#type' => 'textfield',
       '#title' => t('Limit'),
       '#description' => t('Maximum number of Images to add. Max of 60.'),
-      '#default_value' => $bean->settings['limit'],
-      '#required' => TRUE,
+      '#default_value' => isset($bean->settings['limit']) ? $bean->settings['limit'] : 10,
     );
 
     $form['settings']['resolution'] = array(
@@ -178,8 +141,7 @@ class InstagramBean extends BeanPlugin {
         'low_resolution' => t('Low Resolution'),
         'standard_resolution' => t('Standard Resolution'),
       ),
-      '#required' => TRUE,
-      '#default_value' => $bean->settings['resolution'],
+      '#default_value' => isset($bean->settings['resolution']) ? $bean->settings['resolution'] : 'thumbnail',
     );
 
     $form['settings']['template'] = array(
@@ -205,7 +167,8 @@ class InstagramBean extends BeanPlugin {
 
     $id = 'bean_instagram-' . $entity_id;
     $settings = $bean->settings + array(
-      'target' => $id
+      'target' => $id,
+      'get' => 'user',
     );
     // Filter out null/empty settings.
     $settings = array_filter($settings, 'strlen');

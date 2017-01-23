@@ -9,106 +9,31 @@
  * Implements hook_menu().
  */
 function bean_instagram_menu() {
-  $items['admin/config/services/instagram'] = array(
-    'title' => 'Instagram authentication settings',
-    'description' => 'Client ID, Client Secret and Access Token',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('bean_instagram_authentication_form'),
+  $items['bean_instagram/get_access_token'] = array(
+    'title' => 'Get Access Token',
+    'page callback' => 'bean_instagram_get_access_token_page',
     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
 }
 
 /**
- * Form callback; Instagram authentication settings.
+ * Page callback for recieving an access token.
  */
-function bean_instagram_authentication_form($form, &$form_state) {
+function bean_instagram_get_access_token_page() {
   $query_parameters = drupal_get_query_parameters();
 
-  $form['client_id'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Client ID'),
-    '#description' => t('Your API client id from Instagram.'),
-    '#default_value' => variable_get('bean_instagram_client_id'),
-    '#required' => TRUE,
-  );
+  if (isset($query_parameters['destination'])) {
+    $destination = $query_parameters['destination'];
+    unset($query_parameters['destination']);
+    unset($_GET['destination']);
 
-  $form['client_secret'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Client Secret'),
-    '#description' => t('Your API client secret from Instagram.'),
-    '#default_value' => variable_get('bean_instagram_client_secret'),
-    '#required' => TRUE,
-  );
-
-  $form['access_token'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Access token'),
-    '#description' => t('You need to create an !link and add this page as a valid URI.',
-      array('!link' => l('Instagram client', 'https://www.instagram.com/developer/clients/manage/'))
-    ),
-  );
-
-  $form['access_token']['get'] = array(
-    '#type' => 'submit',
-    '#value' => t('Get Access Token'),
-    '#name' => 'get_access_token',
-    '#states' => array(
-      'disabled' => array(
-        ':input[name="client_id"]' => array('filled' => FALSE),
-        ':input[name="client_secret"]' => array('filled' => FALSE),
-      ),
-    ),
-  );
-
-  $form['access_token']['value'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Access Token'),
-    '#title_display' => 'invisible',
-    '#default_value' => variable_get('bean_instagram_access_token'),
-  );
-
-  if (isset($query_parameters['code'])) {
-    $options = array(
-      'client_id' => variable_get('bean_instagram_client_id'),
-      'client_secret' => variable_get('bean_instagram_client_secret'),
-      'grant_type' => 'authorization_code',
-      'redirect_uri' => url(current_path(), array('absolute' => TRUE)),
-      'code' => $query_parameters['code'],
-    );
-
-    $response = bean_instagram_get_access_token($options);
-
-    if (isset($response['access_token'])) {
-      $form['access_token']['value']['#default_value'] = $response['access_token'];
-    }
+    drupal_goto($destination, array('query' => $query_parameters), 301);
   }
-
-  $form['actions']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Submit'),
-  );
-
-  return $form;
-}
-
-/**
- * Form submit callback; Instagram authentication settings.
- */
-function bean_instagram_authentication_form_submit($form, &$form_state) {
-  $trigger = $form_state['triggering_element'];
-  $values = $form_state['values'];
-
-  variable_set('bean_instagram_client_id', $values['client_id']);
-  variable_set('bean_instagram_client_secret', $values['client_secret']);
-  variable_set('bean_instagram_access_token', $values['value']);
-
-  if ($trigger['#name'] == 'get_access_token') {
-    $redirect_uri = url(current_path(), array('absolute' => TRUE));
-    $client_id = $values['client_id'];
-
-    $form_state['redirect'] = "https://api.instagram.com/oauth/authorize/?client_id=$client_id&redirect_uri=$redirect_uri&response_type=code";
+  else {
+    drupal_not_found();
   }
 }
 
@@ -127,6 +52,83 @@ function bean_instagram_get_access_token($options) {
   curl_close($ch);
 
   return drupal_json_decode($result);
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function bean_instagram_form_bean_form_alter(&$form, &$form_state, $form_id) {
+  if ($form['#bundle'] == 'instagram') {
+    $query_parameters = drupal_get_query_parameters();
+
+    // Replace form with cached form so that values are kept.
+    if (isset($query_parameters['form_build_id'])) {
+      $form_build_id = $query_parameters['form_build_id'];
+      $cached = cache_get('bean_instagram_form_' . $form_build_id, 'cache_form');
+      $form = $cached->data;
+    }
+
+    if (isset($query_parameters['code']) && isset($query_parameters['client_id']) && isset($query_parameters['client_secret'])) {
+      // Get Access Token
+      $options = array(
+        'client_id' => $query_parameters['client_id'],
+        'client_secret' => $query_parameters['client_secret'],
+        'grant_type' => 'authorization_code',
+        'redirect_uri' => url('bean_instagram/get_access_token', array(
+          'absolute' => TRUE,
+          'query' => array(
+            'destination' => current_path(),
+            'client_id' => $query_parameters['client_id'],
+            'client_secret' => $query_parameters['client_secret'],
+            'form_build_id' => $form_build_id,
+          ),
+        )),
+        'code' => $query_parameters['code'],
+      );
+      $response = bean_instagram_get_access_token($options);
+
+      if (isset($response['access_token'])) {
+        $form['authentication']['access_token']['#value'] = $response['access_token'];
+        $form['settings']['accessToken']['#value'] = $response['access_token'];
+      }
+      if (isset($response['user']['id'])) {
+        $form['settings']['userId']['#value'] = $response['user']['id'];
+      }
+    }
+  }
+}
+
+/**
+ * Submit handler for Get Access Token button.
+ */
+function bean_instagram_get_access_token_submit($form, &$form_state) {
+  $values = $form_state['values'];
+  $form_build_id = $values['form_build_id'];
+
+  // Skip existing redirects.
+  if (isset($_GET['destination'])) {
+    unset($_GET['destination']);
+  }
+
+  // Store form in cache so it can be retrieved after authentication.
+  cache_set('bean_instagram_form_' . $form_build_id, $form, 'cache_form', CACHE_TEMPORARY);
+
+  // Build redirect query.
+  $query = drupal_http_build_query(array(
+    'client_id' => $values['authentication']['client_id'],
+    'redirect_uri' => url('bean_instagram/get_access_token', array(
+      'absolute' => TRUE,
+      'query' => array(
+        'destination' => current_path(),
+        'client_id' => $values['authentication']['client_id'],
+        'client_secret' => $values['authentication']['client_secret'],
+        'form_build_id' => $form_build_id,
+      ),
+    )),
+    'response_type' => 'code',
+  ));
+
+  $form_state['redirect'] = "https://api.instagram.com/oauth/authorize/?$query";
 }
 
 /**
@@ -155,7 +157,6 @@ function bean_instagram_library() {
   );
   return $items;
 }
-
 
 /**
  * Implements hook_bean_types_api_info().
