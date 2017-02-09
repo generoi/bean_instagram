@@ -16,7 +16,6 @@ class InstagramBean extends BeanPlugin {
         'clientId' => NULL,
         'clientSecret' => NULL,
         'userId' => NULL,
-        'userName' => NULL,
         'accessToken' => NULL,
         'locationId' => NULL,
         'tagName' => NULL,
@@ -187,7 +186,7 @@ class InstagramBean extends BeanPlugin {
     }
     $show_more = '';
     if ($settings['showMoreLink']) {
-      $show_more = '<p>' . l(t('More on instagram'), 'https://instagram.com/' . $settings['userName'], array('external' => TRUE, 'attributes' => array('class' => array('show-more')))) . '</p>';
+      $show_more = '<p>' . l(t('More on instagram'), 'https://instagram.com/' . $settings['userId'], array('external' => TRUE, 'attributes' => array('class' => array('show-more')))) . '</p>';
     }
     $build['content'] = array(
       '#markup' => '<div class="bean-instagram-wrapper"><div id="' . $id . '" class="bean-instagram"></div>' . $show_more . '</div>',
